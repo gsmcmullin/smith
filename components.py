@@ -135,9 +135,9 @@ class TLine(Component):
 	gt = z_to_gamma(target)
         pl = cmath.phase(gl)
         pt = cmath.phase(gt)
-        if pt < pl:
-            pt += 2 * math.pi
-        self.set_property("normval", (pt - pl)/(4*math.pi))
+        if pt > pl:
+            pt -= 2 * math.pi
+        self.set_property("normval", (pt - pl)/(-4*math.pi))
         return gamma_to_z(cmath.rect(abs(gl), cmath.phase(gt)))
 
     def range(self, load, target):
@@ -146,14 +146,14 @@ class TLine(Component):
 
         pl = cmath.phase(gl)
         pt = cmath.phase(gt)
-        if pt < pl:
-            pt += 2 * math.pi
+        if pt > pl:
+            pt -= 2 * math.pi
 
-        for phase in ranges.lin(pl, pt):
+        for phase in ranges.lin(pt, pl):
             yield gamma_to_z(cmath.rect(abs(gl), phase))
 
     def apply(self, load):
-        rotate = cmath.rect(1, 4 * self.normval * math.pi)
+        rotate = cmath.rect(1, -4 * self.normval * math.pi)
         return gamma_to_z(z_to_gamma(load) * rotate)
 
     def format_type(self):
