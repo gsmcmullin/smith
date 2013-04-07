@@ -174,6 +174,8 @@ class SmithWidget(gtk.DrawingArea):
         self._paint_solution()
 
     def _paint_solution(self):
+        self._pixmap.draw_drawable(self.style.white_gc,self._chart,
+				0, 0, 0, 0, self._width, self._height)
         if self.load is None:
             return
         cr = cairo_for_drawable(self._pixmap)
