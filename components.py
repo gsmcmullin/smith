@@ -79,7 +79,11 @@ class Susceptance(Component):
         return "Shunt Inductor" if self.normval < 0 else "Shunt Capacitor"
 
     def format_physval(self, z0, freq):
-        x = -z0 / self.normval
+        try:
+            x = -z0 / self.normval
+        except ZeroDivisionError:
+            x = 0
+
         if x < 0:
             return spicenum.format(-1/(2*math.pi*freq*x))+'F'
         else:
@@ -88,7 +92,7 @@ class Susceptance(Component):
 class Resistance(Component):
     def contraint(self, load, target):
         if load.real > target.real:
-            return load
+            target = load
         self.set_property("normval", target.real - load.real)
         return complex(target.real, load.imag)
 
@@ -110,7 +114,7 @@ class Conductance(Component):
 	target = 1 / target
 	load = 1 / load
         if load.real > target.real:
-            return 1 / load
+            target = load
         self.set_property("normval", target.real - load.real)
         return 1/complex(target.real, load.imag)
 
@@ -127,6 +131,8 @@ class Conductance(Component):
         return "Shunt Resistor"
 
     def format_physval(self, z0, freq):
+        if self.normval == 0:
+            return "Open"
         return spicenum.format(z0 / self.normval) + "ohm"
 
 class TLine(Component):
