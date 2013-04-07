@@ -17,6 +17,13 @@ class Solution(gobject.GObject):
         component.connect("notify::normval", self._component_changed, index)
         self.emit('changed', index)
 
+    def pop_component(self):
+        index = len(self._components)
+        comp = self._components.pop()
+        comp.disconnect_by_func(self._component_changed)
+        self.emit('changed', index)
+        return comp
+
     def apply(self, load):
         for c in self._components:
             load = c.apply(load)

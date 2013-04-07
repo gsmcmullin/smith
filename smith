@@ -36,6 +36,8 @@ class SmithWindow(gtk.Window):
             self.smith.queue_draw()
             print "\x1b[K",
             sys.stdout.flush()
+        elif key == 'BackSpace':
+            self.smith.solution.pop_component()
         else:
             print "Key event: ", key
 
