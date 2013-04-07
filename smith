@@ -46,7 +46,9 @@ class SmithWindow(gtk.Window):
             self.smith.set_load(z)
             return
         if self.smith.load is not None and self.smith.component is not None:
-            self.smith.commit_component()
+            self.smith.solution.push_component(self.smith.component)
+            self.smith.component = components.types[self.cindex]()
+            self.smith.component.connect("notify::normval", self.component_value_changed)
             print
 
     def component_value_changed(self, component, paramstring):

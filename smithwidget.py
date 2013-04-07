@@ -1,10 +1,13 @@
 import gtk
 import pango
+import cairo
 import math
 import cmath
 
 import ranges
 from transform import z_to_gamma, gamma_to_z, gamma_to_swr
+
+from solution import Solution
 
 # Drawing functions
 def cairo_for_drawable(drawable):
@@ -53,7 +56,10 @@ class SmithWidget(gtk.DrawingArea):
                         gtk.gdk.KEY_PRESS_MASK)
         self.set_flags(gtk.CAN_DEFAULT)
         self.set_can_focus(True)
+        self.solution = Solution()
+        self.solution.connect("changed", self._solution_changed)
 	self.load = None
+	self.wload = None
 	self.component = None
 
     def gamma_to_xy(self, gamma):
@@ -113,6 +119,7 @@ class SmithWidget(gtk.DrawingArea):
         self._cairo = self._pixmap.cairo_create()
 	self._pixmap.draw_drawable(self.style.white_gc,self._chart,
 			0, 0, 0, 0, self._width, self._height)
+        self._paint_solution()
 
     def _expose_event(self, w, event):
 	self.window.draw_drawable(self.style.white_gc, self._pixmap,
@@ -124,7 +131,7 @@ class SmithWidget(gtk.DrawingArea):
 	gamma = self.xy_to_gamma(event.x, event.y)
 	z = gamma_to_z(gamma)
         if self.load is not None and self.component is not None:
-            z = self.component.contraint(self.load, z)
+            z = self.component.contraint(self.wload, z)
             gamma = z_to_gamma(z)
 
 	text = u"\u0393 = %.1f%+.1fj\n" % (gamma.real, gamma.imag)
@@ -153,7 +160,7 @@ class SmithWidget(gtk.DrawingArea):
             cr.set_source_rgb(1, 0, 0)
             cr.set_line_width(0.005)
             cr.new_path()
-            for p in self.component.range(self.load, z):
+            for p in self.component.range(self.wload, z):
 		gamma = z_to_gamma(p)
                 cr.line_to(gamma.real, gamma.imag)
             cr.stroke()
@@ -161,23 +168,33 @@ class SmithWidget(gtk.DrawingArea):
     def set_load(self, z):
         self.load = z
         if z is None:
+            self.wload = None
             return
-        self._cairo.set_line_width(2)
-	self._cairo.new_path()
-	x, y = self.gamma_to_xy(z_to_gamma(self.load))
-	self._cairo.arc(x, y, 2, 0, 2*math.pi)
-	self._cairo.stroke()
-	self.queue_draw()
+        self.wload = self.solution.apply(self.load)
+        self._paint_solution()
 
-    # FIXME: This must go and be replaced with a solution class...
-    def commit_component(self):
-        z = self.component.apply(self.load)
+    def _paint_solution(self):
+        if self.load is None:
+            return
         cr = cairo_for_drawable(self._pixmap)
+        cr.set_line_cap(cairo.LINE_CAP_ROUND)
+        cr.set_line_join(cairo.LINE_JOIN_ROUND)
         cr.set_line_width(0.01)
         cr.new_path()
-        for p in self.component.range(self.load, z):
-	    gamma = z_to_gamma(p)
-            cr.line_to(gamma.real, gamma.imag)
+	l = self.load
+	gamma = z_to_gamma(self.load)
+	cr.arc(gamma.real, gamma.imag, 0.005, 0, 2*math.pi)
+        cr.move_to(gamma.real, gamma.imag)
+        for comp in self.solution:
+            z = comp.apply(l)
+            for p in comp.range(l, z):
+    	        gamma = z_to_gamma(p)
+                cr.line_to(gamma.real, gamma.imag)
+            l = z
         cr.stroke()
-        self.set_load(z)
+        self.queue_draw()
+
+    def _solution_changed(self, solution, index):
+         self.wload = self.solution.apply(self.load)
+         self._paint_solution()
 

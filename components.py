@@ -149,7 +149,7 @@ class TLine(Component):
         if pt > pl:
             pt -= 2 * math.pi
 
-        for phase in ranges.lin(pt, pl):
+        for phase in ranges.lin(pl, pt):
             yield gamma_to_z(cmath.rect(abs(gl), phase))
 
     def apply(self, load):
