@@ -7,6 +7,8 @@ def _logscalegen(points, minn, maxn):
         x *= mul
 
 def log(minn=0.001, maxn=100, points=200):
+    if minn == maxn:
+        return [minn]
     if maxn < minn:
         minn, maxn = maxn, minn
         reverse = True
@@ -34,4 +36,5 @@ def lin(minn, maxn, points=200, step=None):
     for i in range(points):
         yield minn
         minn += step
+    yield maxn
 
