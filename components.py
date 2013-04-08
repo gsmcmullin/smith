@@ -1,3 +1,4 @@
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 import gobject
 import math
 import cmath
@@ -43,7 +44,7 @@ class Reactance(Component):
         return complex(load.real, target.imag)
 
     def range(self, load, target):
-	for x in ranges.log(load.imag, target.imag):
+        for x in ranges.log(load.imag, target.imag):
             yield complex(load.real, x)
 
     def apply(self, load):
@@ -61,15 +62,15 @@ class Reactance(Component):
 
 class Susceptance(Component):
     def contraint(self, load, target):
-	target = 1 / target
-	load = 1 / load
+        target = 1 / target
+        load = 1 / load
         self.set_property("normval", target.imag - load.imag)
         return 1 / complex(load.real, target.imag)
 
     def range(self, load, target):
-	target = 1 / target
-	load = 1 / load
-	for x in ranges.log(load.imag, target.imag):
+        target = 1 / target
+        load = 1 / load
+        for x in ranges.log(load.imag, target.imag):
             yield 1/complex(load.real, x)
 
     def apply(self, load):
@@ -97,7 +98,7 @@ class Resistance(Component):
         return complex(target.real, load.imag)
 
     def range(self, load, target):
-	for r in ranges.log(load.real, target.real):
+        for r in ranges.log(load.real, target.real):
             yield complex(r, load.imag)
 
     def apply(self, load):
@@ -111,17 +112,17 @@ class Resistance(Component):
 
 class Conductance(Component):
     def contraint(self, load, target):
-	target = 1 / target
-	load = 1 / load
+        target = 1 / target
+        load = 1 / load
         if load.real > target.real:
             target = load
         self.set_property("normval", target.real - load.real)
         return 1/complex(target.real, load.imag)
 
     def range(self, load, target):
-	target = 1 / target
-	load = 1 / load
-	for s in ranges.log(load.real, target.real):
+        target = 1 / target
+        load = 1 / load
+        for s in ranges.log(load.real, target.real):
             yield 1/complex(s, load.imag)
 
     def apply(self, load):
@@ -138,7 +139,7 @@ class Conductance(Component):
 class TLine(Component):
     def contraint(self, load, target):
         gl = z_to_gamma(load)
-	gt = z_to_gamma(target)
+        gt = z_to_gamma(target)
         pl = cmath.phase(gl)
         pt = cmath.phase(gt)
         if pt > pl:
@@ -148,7 +149,7 @@ class TLine(Component):
 
     def range(self, load, target):
         gl = z_to_gamma(load)
-	gt = z_to_gamma(target)
+        gt = z_to_gamma(target)
 
         pl = cmath.phase(gl)
         pt = cmath.phase(gt)

@@ -1,3 +1,4 @@
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 def _logscalegen(points, minn, maxn):
     mul = (maxn/minn) ** (1.0/(points-1))

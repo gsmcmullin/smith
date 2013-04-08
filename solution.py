@@ -1,3 +1,4 @@
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 import gobject
 
 import components
@@ -5,7 +6,7 @@ import components
 class Solution(gobject.GObject):
     __gsignals__ = {
             'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (int,))
-        }
+    }
 
     def __init__(self):
         gobject.GObject.__init__(self)

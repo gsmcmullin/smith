@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 import sys
 import gtk
 from smithwidget import SmithWidget
@@ -12,9 +13,9 @@ class SmithWindow(gtk.Window):
         self.set_title("Interactive Smith Chart")
         self.set_default_size(600, 600)
         self.smith = SmithWidget()
-	self.add(self.smith)
-	self.smith.grab_default()
-	self.smith.grab_focus()
+        self.add(self.smith)
+        self.smith.grab_default()
+        self.smith.grab_focus()
 
         self.smith.connect("key_press_event", self._smith_key_press_event)
         self.smith.connect("button_press_event", self._smith_click_event)
@@ -42,9 +43,9 @@ class SmithWindow(gtk.Window):
             print "Key event: ", key
 
     def _smith_click_event(self, w, event):
-	gamma = self.smith.xy_to_gamma(event.x, event.y)
-	z = gamma_to_z(gamma)
-	if self.smith.load is None or event.state & gtk.gdk.SHIFT_MASK:
+        gamma = self.smith.xy_to_gamma(event.x, event.y)
+        z = gamma_to_z(gamma)
+        if self.smith.load is None or event.state & gtk.gdk.SHIFT_MASK:
             self.smith.set_load(z)
             return
         if self.smith.load is not None and self.smith.component is not None:
