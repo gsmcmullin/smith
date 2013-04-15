@@ -1,15 +1,15 @@
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
-import gobject
+from gi.repository import GObject
 
 import components
 
-class Solution(gobject.GObject):
+class Solution(GObject.GObject):
     __gsignals__ = {
-            'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (int,))
+            'changed' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (int,))
     }
 
     def __init__(self):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
         self._components = []
 
     def push_component(self, component):
@@ -25,8 +25,10 @@ class Solution(gobject.GObject):
         self.emit('changed', index)
         return comp
 
-    def apply(self, load):
+    def apply(self, load, comp = None):
         for c in self._components:
+            if c == comp:
+                return load
             load = c.apply(load)
         return load
 
@@ -39,5 +41,5 @@ class Solution(gobject.GObject):
     def __getitem__(self, item):
         return self._components[item]
 
-gobject.type_register(Solution)
+GObject.type_register(Solution)
 

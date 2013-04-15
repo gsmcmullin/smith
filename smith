@@ -1,15 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 import sys
-import gtk
+
+from gi.repository import Gtk
+from gi.repository import Gdk
+
 from smithwidget import SmithWidget
 import components
 from transform import gamma_to_z
 import spicenum
 
-class SmithWindow(gtk.Window):
+class SmithWindow(Gtk.Window):
     def __init__(self):
-        gtk.Window.__init__(self)
+        Gtk.Window.__init__(self)
         self.set_title("Interactive Smith Chart")
         self.set_default_size(600, 600)
         self.smith = SmithWidget()
@@ -23,47 +26,53 @@ class SmithWindow(gtk.Window):
         self.cindex = 0
         self.smith.component = components.types[self.cindex]()
         self.smith.component.connect("notify::normval", self.component_value_changed)
+        self.smith.solution.push_component(self.smith.component)
 
     def _smith_key_press_event(self, w, event):
-        key = gtk.gdk.keyval_name(event.keyval)
+        key = Gdk.keyval_name(event.keyval)
         if key == 'space':
             self.cindex = (self.cindex + 1) % len(components.types)
-            del self.smith.component
+            if self.smith.component:
+                self.smith.solution.pop_component()
+                del self.smith.component
             self.smith.component = components.types[self.cindex]()
             self.smith.component.connect("notify::normval", self.component_value_changed)
+            self.smith.solution.push_component(self.smith.component)
         elif key == 'Escape':
+            if self.smith.component is None:
+                return
+            self.smith.solution.pop_component()
             del self.smith.component
             self.smith.component = None
-            self.smith.queue_draw()
-            print "\x1b[K",
+            print("\x1b[K", end='')
             sys.stdout.flush()
         elif key == 'BackSpace':
             self.smith.solution.pop_component()
         else:
-            print "Key event: ", key
+            print("Key event: ", key)
 
     def _smith_click_event(self, w, event):
         gamma = self.smith.xy_to_gamma(event.x, event.y)
         z = gamma_to_z(gamma)
-        if self.smith.load is None or event.state & gtk.gdk.SHIFT_MASK:
+        if self.smith.load is None or event.state & Gdk.ModifierType.SHIFT_MASK:
             self.smith.set_load(z)
             return
         if self.smith.load is not None and self.smith.component is not None:
-            self.smith.solution.push_component(self.smith.component)
             self.smith.component = components.types[self.cindex]()
             self.smith.component.connect("notify::normval", self.component_value_changed)
-            print
+            self.smith.solution.push_component(self.smith.component)
+            print()
 
     def component_value_changed(self, component, paramstring):
-        print ("%s: %s   \r" % (component.format_type(),
-                                component.format_physval(50, 2.4e9))),
+        print("\x1b[K%s: %s\r" % (component.format_type(),
+                                component.format_physval(50, 2.4e9)), end='')
         sys.stdout.flush();
 
 def main():
     w = SmithWindow()
-    w.connect("destroy", gtk.main_quit)
+    w.connect("destroy", Gtk.main_quit)
     w.show_all()
-    gtk.main()
+    Gtk.main()
 
 if __name__ == "__main__":
     main()

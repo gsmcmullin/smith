@@ -1,26 +1,18 @@
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
-import gtk
-import pango
-import cairo
 import math
 import cmath
 
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Pango
+from gi.repository import Gdk
+import cairo
+
 import ranges
 from transform import z_to_gamma, gamma_to_z, gamma_to_swr
-
 from solution import Solution
 
 # Drawing functions
-def cairo_for_drawable(drawable):
-    """Create cairo context and transform to gamma units."""
-    cr = drawable.cairo_create()
-    w, h = drawable.get_size()
-    r = min(w, h)/2 - 10;
-    cr.translate(w/2, h/2)
-    cr.scale(r, -r)
-    cr.set_line_width(0.005)
-    return cr
-
 def line_const_r(cr, r, x1, x2):
     gamma = z_to_gamma(complex(r, x1))
     cr.move_to(gamma.real, gamma.imag)
@@ -45,17 +37,16 @@ def draw_chart_lines(cr):
         line_const_x(cr, i, 0, 200)
     cr.stroke()
 
-class SmithWidget(gtk.DrawingArea):
+class SmithWidget(Gtk.DrawingArea):
     def __init__(self):
-        self.__gobject_init__()
-        gtk.DrawingArea.__init__(self)
+        Gtk.DrawingArea.__init__(self)
+        self.connect("draw", self._draw)
         self.connect("configure_event", self._configure_event)
-        self.connect("expose_event", self._expose_event)
         self.connect("motion_notify_event", self._motion_event)
-        self.add_events(gtk.gdk.POINTER_MOTION_MASK |
-                        gtk.gdk.BUTTON_PRESS_MASK |
-                        gtk.gdk.KEY_PRESS_MASK)
-        self.set_flags(gtk.CAN_DEFAULT)
+        self.add_events(Gdk.EventMask.POINTER_MOTION_MASK |
+                        Gdk.EventMask.BUTTON_PRESS_MASK |
+                        Gdk.EventMask.KEY_PRESS_MASK)
+        self.set_can_default(True)
         self.set_can_focus(True)
         self.solution = Solution()
         self.solution.connect("changed", self._solution_changed)
@@ -75,20 +66,14 @@ class SmithWidget(gtk.DrawingArea):
             gamma = cmath.rect(0.99, cmath.phase(gamma))
         return gamma
 
-
-    def _draw_chart(self, drawable):
-        """Draw a smith chart on a gdk.Drawable"""
-        c = cairo_for_drawable(self._chart)
-        c.save()
-        c.set_source_color(self.style.bg[self.state])
-        c.paint()
-        c.set_source_color(self.style.fg[self.state])
-        c.set_line_width(0.005)
-
+    def _draw_chart(self, c):
+        """Draw a smith chart on a cairo.Context"""
+        style = self.get_style_context()
         # Draw pale admittance grid by scaling and translating
         c.save()
         c.scale(-1, -1)
-        c.set_source_color(self.style.mid[self.state])
+        color = self.get_style().mid[self.get_state()]
+        c.set_source_rgb(color.red, color.green, color.blue)
         draw_chart_lines(c)
         c.restore()
 
@@ -105,28 +90,24 @@ class SmithWidget(gtk.DrawingArea):
         c.new_path()
         c.arc(0, 0, 1, 0, 2*math.pi)
         c.stroke()
-        c.restore()
 
     def _configure_event(self, w, event):
         self._width = event.width
         self._height = event.height
         self._radius = min(self._width, self._height)/2 - 10
 
-        self._chart = gtk.gdk.Pixmap(self.window,
-                              self._width, self._height, -1)
-        self._draw_chart(self._chart)
-        self._pixmap = gtk.gdk.Pixmap(self.window,
-                              self._width, self._height, -1)
-        self._cairo = self._pixmap.cairo_create()
-        self._pixmap.draw_drawable(self.style.white_gc,self._chart,
-                        0, 0, 0, 0, self._width, self._height)
-        self._paint_solution()
+    def cairo_to_gamma(self, cr):
+        w = self.get_allocated_width()
+        h = self.get_allocated_height()
+        r = min(w, h)/2 - 10;
+        cr.translate(w/2, h/2)
+        cr.scale(r, -r)
+        cr.set_line_width(0.005)
 
-    def _expose_event(self, w, event):
-        self.window.draw_drawable(self.style.white_gc, self._pixmap,
-                    event.area.x, event.area.y,
-                    event.area.x, event.area.y,
-                    event.area.width, event.area.height)
+    def _draw(self, w, cr):
+        self.cairo_to_gamma(cr)
+        self._draw_chart(cr)
+        self._paint_solution(cr)
 
     def _motion_event(self, w, event):
         gamma = self.xy_to_gamma(event.x, event.y)
@@ -137,13 +118,14 @@ class SmithWidget(gtk.DrawingArea):
 
         y = 1/z
         text = "Z = %.1f%+.1fj; Y = %.1f%+.1fj\n" % (z.real, z.imag, y.real, y.imag)
-        text += u"\u0393 = %.1f%+.1fj\n" % (gamma.real, gamma.imag)
+        text += "\u0393 = %.1f%+.1fj\n" % (gamma.real, gamma.imag)
         text += "SWR = %.1f\n" % gamma_to_swr(gamma)
         try:
             rl = "%.1f" % (-20*math.log10(abs(gamma)))
         except ValueError:
-            rl = u"\u221e"
+            rl = "\u221e"
         text += "S<sub>11</sub> = -%s dB" % rl
+        return
         layout = pango.Layout(self.get_pango_context())
         layout.set_markup(text)
         w, h = layout.get_pixel_size();
@@ -171,16 +153,13 @@ class SmithWidget(gtk.DrawingArea):
         self.load = z
         if z is None:
             self.wload = None
-            return
-        self.wload = self.solution.apply(self.load)
-        self._paint_solution()
+        else:
+            self.wload = self.solution.apply(self.load, self.component)
+        self.queue_draw()
 
-    def _paint_solution(self):
-        self._pixmap.draw_drawable(self.style.white_gc,self._chart,
-                                0, 0, 0, 0, self._width, self._height)
+    def _paint_solution(self, cr):
         if self.load is None:
             return
-        cr = cairo_for_drawable(self._pixmap)
         cr.set_line_cap(cairo.LINE_CAP_ROUND)
         cr.set_line_join(cairo.LINE_JOIN_ROUND)
         cr.set_line_width(0.01)
@@ -191,14 +170,30 @@ class SmithWidget(gtk.DrawingArea):
         cr.move_to(gamma.real, gamma.imag)
         for comp in self.solution:
             z = comp.apply(l)
-            for p in comp.range(l, z):
-                gamma = z_to_gamma(p)
-                cr.line_to(gamma.real, gamma.imag)
+            if comp != self.component:
+                for p in comp.range(l, z):
+                    gamma = z_to_gamma(p)
+                    cr.line_to(gamma.real, gamma.imag)
             l = z
         cr.stroke()
-        self.queue_draw()
+
+        # Paint working component in transparent red
+        if self.component is not None:
+            cr.save()
+            cr.set_source_rgba(1, 0, 0, 0.5)
+            cr.new_path()
+            z = self.component.apply(self.wload)
+            for p in self.component.range(self.wload, z):
+                gamma = z_to_gamma(p)
+                cr.line_to(gamma.real, gamma.imag)
+            cr.stroke()
+            cr.restore()
 
     def _solution_changed(self, solution, index):
-         self.wload = self.solution.apply(self.load)
-         self._paint_solution()
+        if self.load is None:
+            return
+        self.wload = self.solution.apply(self.load, self.component)
+        self.queue_draw()
+
+GObject.type_register(SmithWidget)
 

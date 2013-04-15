@@ -1,5 +1,8 @@
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
-import gobject
+try:
+    from gi.repository import GObject as gobject
+except:
+    import gobject
 import math
 import cmath
 import ranges
@@ -13,7 +16,7 @@ class Component(gobject.GObject):
                      -gobject.G_MAXDOUBLE, gobject.G_MAXDOUBLE, 1,
                      gobject.PARAM_READWRITE),
     }
-    def __init__(self, normval = 1):
+    def __init__(self, normval = 0):
         gobject.GObject.__init__(self)
         self.normval = normval
 
@@ -21,13 +24,13 @@ class Component(gobject.GObject):
         if property.name == 'normval':
             return self.normval
         else:
-            raise AttributeError, 'unknown property %s' % property.name
+            raise AttributeError('unknown property %s' % property.name)
 
     def do_set_property(self, property, value):
         if property.name == 'normval':
             self.normval = value
         else:
-            raise AttributeError, 'unknown property %s' % property.name
+            raise AttributeError('unknown property %s' % property.name)
 
     def contraint(self, load, target):
         raise NotImplementedError()

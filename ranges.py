@@ -3,7 +3,7 @@
 def _logscalegen(points, minn, maxn):
     mul = (maxn/minn) ** (1.0/(points-1))
     x = minn
-    for i in range(points):
+    for i in range(int(points)):
         yield x
         x *= mul
 
